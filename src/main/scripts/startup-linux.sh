@@ -1,0 +1,1 @@
+nohup java  -cp "classes:./*:lib/*" com.filestransfer.receiver.TransferReceiver&
