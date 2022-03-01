@@ -11,10 +11,10 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import com.filestransfer.sender.handler.TransferSendHandler;
-import com.filestransfer.utils.ExceptionUtil;
+import com.filestransfer.util.ExceptionUtil;
 
 public class TransferSender extends Socket {
-	private static final Logger logger = Logger.getLogger(TransferSender.class);
+	private static final Logger LOGGER = Logger.getLogger(TransferSender.class);
 	private Socket client;
 	
 	private static TransferSendHandler sendHandler;
@@ -32,7 +32,7 @@ public class TransferSender extends Socket {
 	public TransferSender(String serverIp, int serverPort) throws Exception {
 		super(serverIp, serverPort);
 		this.client = this;
-		logger.info("Cliect[port:" + client.getLocalPort() + "] 成功连接服务端");
+		LOGGER.info("Cliect[port:" + client.getLocalPort() + "] 成功连接服务端");
 		
 		sendHandler = new TransferSendHandler(client);
 	}
@@ -132,7 +132,7 @@ public class TransferSender extends Socket {
 //			targetPath = "D:/test/www.aa.com/mytest02";
 			//shell="date";
 
-			logger.info(
+			LOGGER.info(
 					MessageFormat.format("当前的调用参数是：port:{0}, ip:{1}, file:{2}, dir:{3}, targetPath:{4}, shell:{5}", port, ip, file, dir, targetPath, shell));
 
 			if (StringUtils.isBlank(ip)) {
@@ -226,7 +226,7 @@ public class TransferSender extends Socket {
 			}
 
 		} catch (Exception e) {
-			logger.error(e, e.fillInStackTrace());
+			LOGGER.error(e, e.fillInStackTrace());
 		}
 	}
 	

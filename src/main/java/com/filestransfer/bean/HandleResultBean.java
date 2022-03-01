@@ -1,4 +1,4 @@
-package com.filestransfer.beans;
+package com.filestransfer.bean;
 
 public class HandleResultBean {
 	private int code;

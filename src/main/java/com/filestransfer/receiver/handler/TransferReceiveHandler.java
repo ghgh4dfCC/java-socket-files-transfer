@@ -18,11 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
-import com.filestransfer.beans.HandleResultBean;
-import com.filestransfer.utils.FileUtil;
+import com.filestransfer.bean.HandleResultBean;
+import com.filestransfer.util.FileUtil;
 
 public class TransferReceiveHandler {
-	private static final Logger logger = LoggerFactory.getLogger(TransferReceiveHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TransferReceiveHandler.class);
 
 	private OutputStreamWriter osw = null;
 	private PrintWriter pw = null;
@@ -72,7 +72,7 @@ public class TransferReceiveHandler {
 				fos.write(bytes, 0, length);
 				fos.flush();
 			}
-			logger.info("======== 文件接收成功 [File Name：" + fileName + "] [Size：" + getFormatFileSize(fileLength) + "] ========");
+			LOGGER.info("======== 文件接收成功 [File Name：" + fileName + "] [Size：" + getFormatFileSize(fileLength) + "] ========");
 			
 			String md5 = FileUtil.getFileMd5(file);
 			
@@ -80,12 +80,12 @@ public class TransferReceiveHandler {
 			String msg = "";
 			if (md5FromSender.equalsIgnoreCase(md5)) {
 				msg = MessageFormat.format("文件【{0}】md5 校验成功", fileName);
-				logger.info(msg);
+				LOGGER.info(msg);
 
 				md5Check = true;
 			} else {
 				msg = MessageFormat.format("文件【{0}】md5 校验失败", fileName);
-				logger.info(msg);
+				LOGGER.info(msg);
 			}
 			
 			socket.shutdownInput();// 关闭输入流
@@ -153,7 +153,7 @@ public class TransferReceiveHandler {
 				fos.write(bytes, 0, length);
 				fos.flush();
 			}
-			logger.info("======== 文件接收成功 [File Name：" + fileName + "] [Size：" + getFormatFileSize(fileLength) + "] ========");
+			LOGGER.info("======== 文件接收成功 [File Name：" + fileName + "] [Size：" + getFormatFileSize(fileLength) + "] ========");
 			
 			String md5 = FileUtil.getFileMd5(file);
 
@@ -161,12 +161,12 @@ public class TransferReceiveHandler {
 			String msg = "";
 			if (md5FromSender.equalsIgnoreCase(md5)) {
 				msg = MessageFormat.format("文件【{0}】md5 校验成功", fileName);
-				logger.info(msg);
+				LOGGER.info(msg);
 
 				md5Check = true;
 			} else {
 				msg = MessageFormat.format("文件【{0}】md5 校验失败", fileName);
-				logger.info(msg);
+				LOGGER.info(msg);
 			}
 
 			socket.shutdownInput();// 关闭输入流
@@ -261,11 +261,11 @@ public class TransferReceiveHandler {
 			String os = System.getProperty("os.name");
 			// 简单判断，实际上并不只有这两种操作系统
 			if (os.toLowerCase().startsWith("win")) {
-				logger.info("这个是windows系统");
+				LOGGER.info("这个是windows系统");
 				shell = MessageFormat.format("cmd /c \"{0}\"", shell);
 				charsetName = "gbk";
 			} else {
-				logger.info("这个是linux系统");
+				LOGGER.info("这个是linux系统");
 				shell = MessageFormat.format("/bin/sh -c \"{0}\"", shell);
 				charsetName = "utf-8";
 			}
@@ -276,7 +276,7 @@ public class TransferReceiveHandler {
 			try {
 				Runtime runtime = Runtime.getRuntime();
 
-				logger.info("开始执行。。。");
+				LOGGER.info("开始执行。。。");
 				process = runtime.exec(shell);
 
 				// 打印执行的输出结果
@@ -285,11 +285,11 @@ public class TransferReceiveHandler {
 				br = new BufferedReader(isr);
 				String line;
 				while ((line = br.readLine()) != null) {
-					logger.info(line);
+					LOGGER.info(line);
 				}
 				execResult = true;
 			} catch (Exception e) {
-				logger.error("FileTransferReceiver.execShell 捕获异常：", e);
+				LOGGER.error("FileTransferReceiver.execShell 捕获异常：", e);
 				msg=e.getMessage();
 				execResult = false;
 			}
@@ -362,14 +362,14 @@ public class TransferReceiveHandler {
 		String os = System.getProperty("os.name");
 		// 简单判断，实际上并不只有这两种操作系统
 		if (os.toLowerCase().startsWith("win")) {
-			logger.info("这个是windows系统");
-			logger.info("发送端传过来的相对目录是：" + relativePath);
+			LOGGER.info("这个是windows系统");
+			LOGGER.info("发送端传过来的相对目录是：" + relativePath);
 			if (!relativePath.equals("") && relativePath.contains("/")) {
 				relativePath = relativePath.replaceAll("/", "\\\\");
 			}
 		} else {
-			logger.info("这个是linux系统");//除了windows外，暂时都当成是 linux吧
-			logger.info("发送端传过来的相对目录是：" + relativePath);
+			LOGGER.info("这个是linux系统");//除了windows外，暂时都当成是 linux吧
+			LOGGER.info("发送端传过来的相对目录是：" + relativePath);
 			if (!relativePath.equals("") && relativePath.contains("\\")) {
 				relativePath = relativePath.replaceAll("\\\\", "/");
 			}

@@ -1,4 +1,4 @@
-package com.filestransfer.utils;
+package com.filestransfer.util;
 
 import java.io.File;
 import java.io.FileInputStream;

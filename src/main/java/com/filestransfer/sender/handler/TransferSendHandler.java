@@ -12,13 +12,13 @@ import java.net.Socket;
 import org.apache.log4j.Logger;
 
 import com.alibaba.fastjson.JSON;
-import com.filestransfer.beans.ExecType;
-import com.filestransfer.beans.HandleResultBean;
-import com.filestransfer.utils.ExceptionUtil;
-import com.filestransfer.utils.FileUtil;
+import com.filestransfer.bean.ExecType;
+import com.filestransfer.bean.HandleResultBean;
+import com.filestransfer.util.ExceptionUtil;
+import com.filestransfer.util.FileUtil;
 
 public class TransferSendHandler {
-	private static final Logger logger = Logger.getLogger(TransferSendHandler.class);
+	private static final Logger LOGGER = Logger.getLogger(TransferSendHandler.class);
 	
 	private Socket client;
 	private FileInputStream fis;
@@ -59,7 +59,7 @@ public class TransferSendHandler {
 				dos.flush();
 
 				// 开始传输文件
-				logger.info("======== 开始传输文件 ========");
+				LOGGER.info("======== 开始传输文件 ========");
 				byte[] bytes = new byte[1024];
 				int length = 0;
 				long progress = 0;
@@ -67,9 +67,9 @@ public class TransferSendHandler {
 					dos.write(bytes, 0, length);
 					dos.flush();
 					progress += length;
-					logger.info("| " + (100 * progress / file.length()) + "% |");
+					LOGGER.info("| " + (100 * progress / file.length()) + "% |");
 				}
-				logger.info("======== 文件传输成功 ========");
+				LOGGER.info("======== 文件传输成功 ========");
 
 				client.shutdownOutput();// 关闭输出流
 
@@ -78,7 +78,7 @@ public class TransferSendHandler {
 				br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 				String data = null;
 				while ((data = br.readLine()) != null) {
-					logger.info(data);
+					LOGGER.info(data);
 					HandleResultBean result = JSON.parseObject(data, HandleResultBean.class);
 					//code为0表示正常，非0 表示有异常
 					if (0 != result.getCode()) {
@@ -87,7 +87,7 @@ public class TransferSendHandler {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(e, e.fillInStackTrace());
+			LOGGER.error(e, e.fillInStackTrace());
 		} finally {
 			if (fis != null) {
 				fis.close();
@@ -135,10 +135,10 @@ public class TransferSendHandler {
 			br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 			String data = null;
 			while ((data = br.readLine()) != null) {
-				logger.info(data);
+				LOGGER.info(data);
 			}
 		} catch (IOException e) {
-			logger.error(e, e.fillInStackTrace());
+			LOGGER.error(e, e.fillInStackTrace());
 		} finally {
 			if (dos != null) {
 				dos.close();
@@ -186,7 +186,7 @@ public class TransferSendHandler {
 				dos.flush();
 
 				// 开始传输文件
-				logger.info("======== 开始传输文件 ========");
+				LOGGER.info("======== 开始传输文件 ========");
 				byte[] bytes = new byte[1024];
 				int length = 0;
 				long progress = 0;
@@ -194,9 +194,9 @@ public class TransferSendHandler {
 					dos.write(bytes, 0, length);
 					dos.flush();
 					progress += length;
-					logger.info("| " + (100 * progress / file.length()) + "% |");
+					LOGGER.info("| " + (100 * progress / file.length()) + "% |");
 				}
-				logger.info("======== 文件传输成功 ========");
+				LOGGER.info("======== 文件传输成功 ========");
 				
 				client.shutdownOutput();// 关闭输出流
 
@@ -205,7 +205,7 @@ public class TransferSendHandler {
 				br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 				String data = null;
 				while ((data = br.readLine()) != null) {
-					logger.info(data);
+					LOGGER.info(data);
 					HandleResultBean result = JSON.parseObject(data, HandleResultBean.class);
 					//code为0表示正常，非0 表示有异常
 					if (0 != result.getCode()) {
@@ -214,7 +214,7 @@ public class TransferSendHandler {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(e, e.fillInStackTrace());
+			LOGGER.error(e, e.fillInStackTrace());
 		} finally {
 			if (fis != null) {
 				fis.close();
@@ -258,7 +258,7 @@ public class TransferSendHandler {
 			br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
 			String data = null;
 			while ((data = br.readLine()) != null) {
-				logger.info(data);
+				LOGGER.info(data);
 				HandleResultBean result = JSON.parseObject(data, HandleResultBean.class);
 				//code为0表示正常，非0 表示有异常
 				if (0 != result.getCode()) {
@@ -266,7 +266,7 @@ public class TransferSendHandler {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(e, e.fillInStackTrace());
+			LOGGER.error(e, e.fillInStackTrace());
 		} finally {
 			if (dos != null) {
 				dos.close();

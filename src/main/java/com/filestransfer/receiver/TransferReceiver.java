@@ -11,19 +11,23 @@ import java.net.Socket;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.filestransfer.beans.ExecType;
+import com.filestransfer.bean.ExecType;
 import com.filestransfer.receiver.handler.TransferReceiveHandler;
 
 public class TransferReceiver extends ServerSocket {
 	
-	private static final Logger logger = LoggerFactory.getLogger(TransferReceiver.class);
-	private static final ExecutorService execService = Executors.newCachedThreadPool();
-
+	private static final Logger LOGGER = LoggerFactory.getLogger(TransferReceiver.class);
+	private static final ExecutorService RECEIVER_THREAD_POOL = new ThreadPoolExecutor(2, 20, 1L, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(3),
+			Executors.defaultThreadFactory(), new ThreadPoolExecutor.DiscardPolicy());
+	
 	public TransferReceiver(int port, int backlog, InetAddress bindAddr) throws IOException {
 		super(port, backlog, bindAddr);
 	}
@@ -47,12 +51,12 @@ public class TransferReceiver extends ServerSocket {
 			properties.load(bufferedReader);
 			String ip = properties.getProperty("ip").strip();
 			String port = properties.getProperty("port").strip();
-			logger.info("配置文件的ip是：{}，端口号是：{}", ip, port);
+			LOGGER.info("配置文件的ip是：{}，端口号是：{}", ip, port);
 
 			TransferReceiver server = new TransferReceiver(Integer.parseInt(port), 1024, InetAddress.getByName(ip)); // 启动服务端
 			server.load();
 		} catch (Exception e) {
-			logger.error("FileTransferReceiver 捕获异常：", e);
+			LOGGER.error("FileTransferReceiver 捕获异常：", e);
 		}
 	}
 
@@ -62,7 +66,7 @@ public class TransferReceiver extends ServerSocket {
 	 * @throws Exception
 	 */
 	public void load() throws Exception {
-		logger.info("***接收端即将启动，等待发送端的连接***");
+		LOGGER.info("***接收端即将启动，等待发送端的连接***");
 		while (true) {
 			// server尝试接收其他Socket的连接请求，server的accept方法是阻塞式的
 			Socket socket = this.accept();
@@ -73,7 +77,7 @@ public class TransferReceiver extends ServerSocket {
 			// 每接收到一个Socket就建立一个新的线程来处理它
 			//new Thread(new Task(socket)).start();
 			
-			execService.execute(new Task(socket));
+			RECEIVER_THREAD_POOL.execute(new Task(socket));
 		}
 	}
 
@@ -115,7 +119,7 @@ public class TransferReceiver extends ServerSocket {
 				}
 
 			} catch (Exception e) {
-				logger.error("FileTransferReceiver 捕获异常：", e);
+				LOGGER.error("FileTransferReceiver 捕获异常：", e);
 			} finally {				
 				try {
 					if (dis != null) {
@@ -124,7 +128,7 @@ public class TransferReceiver extends ServerSocket {
 
 					socket.close();					
 				} catch (Exception e) {
-					logger.error("FileTransferReceiver 捕获异常：", e);
+					LOGGER.error("FileTransferReceiver 捕获异常：", e);
 					//throw e;
 				}
 			}

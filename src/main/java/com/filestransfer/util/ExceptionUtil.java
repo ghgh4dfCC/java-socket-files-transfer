@@ -1,4 +1,4 @@
-package com.filestransfer.utils;
+package com.filestransfer.util;
 
 import com.filestransfer.exception.FilesTransferException;
 
