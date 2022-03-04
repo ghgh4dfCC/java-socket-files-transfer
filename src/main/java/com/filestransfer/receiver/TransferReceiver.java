@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,19 +16,22 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.filestransfer.bean.ExecType;
 import com.filestransfer.receiver.handler.TransferReceiveHandler;
+import com.filestransfer.util.ExceptionUtil;
 
 public class TransferReceiver extends ServerSocket {
-	
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(TransferReceiver.class);
 	private static final ExecutorService RECEIVER_THREAD_POOL = new ThreadPoolExecutor(2, 20, 1L, TimeUnit.SECONDS, new LinkedBlockingDeque<Runnable>(3),
 			Executors.defaultThreadFactory(), new ThreadPoolExecutor.DiscardPolicy());
-	
+	private static String protocolHeaderReceiver;
+
 	public TransferReceiver(int port, int backlog, InetAddress bindAddr) throws IOException {
 		super(port, backlog, bindAddr);
 	}
@@ -53,6 +57,13 @@ public class TransferReceiver extends ServerSocket {
 			String port = properties.getProperty("port").strip();
 			LOGGER.info("配置文件的ip是：{}，端口号是：{}", ip, port);
 
+			protocolHeaderReceiver = properties.getProperty("protocol_header");
+			if (StringUtils.isBlank(protocolHeaderReceiver)) {
+				ExceptionUtil.throwException("请先配置协议头信息！");
+			}
+
+			protocolHeaderReceiver = protocolHeaderReceiver.strip();
+
 			TransferReceiver server = new TransferReceiver(Integer.parseInt(port), 1024, InetAddress.getByName(ip)); // 启动服务端
 			server.load();
 		} catch (Exception e) {
@@ -75,8 +86,8 @@ public class TransferReceiver extends ServerSocket {
 			 * 这在并发比较多的情况下会严重影响程序的性能， 为此，可以把它改为如下这种异步处理与客户端通信的方式
 			 */
 			// 每接收到一个Socket就建立一个新的线程来处理它
-			//new Thread(new Task(socket)).start();
-			
+			// new Thread(new Task(socket)).start();
+
 			RECEIVER_THREAD_POOL.execute(new Task(socket));
 		}
 	}
@@ -87,9 +98,9 @@ public class TransferReceiver extends ServerSocket {
 	class Task implements Runnable {
 
 		private Socket socket;
-		private DataInputStream dis = null;		
+		private DataInputStream dis = null;
 		private TransferReceiveHandler receiveHandler = null;
-		
+
 		public Task(Socket socket) {
 			this.socket = socket;
 		}
@@ -98,6 +109,11 @@ public class TransferReceiver extends ServerSocket {
 		public void run() {
 			try {
 				dis = new DataInputStream(socket.getInputStream());
+				// 读取协议头
+				String protocolHeaderFromSender = dis.readUTF();
+				if (StringUtils.isBlank(protocolHeaderFromSender) || !protocolHeaderReceiver.equalsIgnoreCase(protocolHeaderFromSender)) {
+					ExceptionUtil.throwException(MessageFormat.format("来自发送端的协议头信息是{0}，与当前接收端的协议头不一致！", protocolHeaderFromSender));
+				}
 
 				receiveHandler = new TransferReceiveHandler();
 				// 执行动作
@@ -120,20 +136,20 @@ public class TransferReceiver extends ServerSocket {
 
 			} catch (Exception e) {
 				LOGGER.error("FileTransferReceiver 捕获异常：", e);
-			} finally {				
+			} finally {
 				try {
 					if (dis != null) {
 						dis.close();
-					}					
+					}
 
-					socket.close();					
+					socket.close();
 				} catch (Exception e) {
 					LOGGER.error("FileTransferReceiver 捕获异常：", e);
-					//throw e;
+					// throw e;
 				}
 			}
 		}
-		
-	}	
+
+	}
 
 }

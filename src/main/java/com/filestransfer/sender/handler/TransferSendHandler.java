@@ -14,6 +14,10 @@ import org.apache.log4j.Logger;
 import com.alibaba.fastjson.JSON;
 import com.filestransfer.bean.ExecType;
 import com.filestransfer.bean.HandleResultBean;
+import com.filestransfer.protocol.CreateDirPacket;
+import com.filestransfer.protocol.RemoteExecShellPacket;
+import com.filestransfer.protocol.SendFileInDirPacket;
+import com.filestransfer.protocol.SendFilePacket;
 import com.filestransfer.util.ExceptionUtil;
 import com.filestransfer.util.FileUtil;
 
@@ -35,75 +39,76 @@ public class TransferSendHandler {
 	 * @throws IOException 
 	 *
 	 */
-	public void sendFile(String filePath, String targetPath) throws IOException {
+	public void sendFile(File fileInSender, SendFilePacket packet) throws IOException {
 		try {
-			File file = new File(filePath);
-			if (file.exists()) {
-				fis = new FileInputStream(file);
-				dos = new DataOutputStream(client.getOutputStream());
+			fis = new FileInputStream(fileInSender);
+			dos = new DataOutputStream(client.getOutputStream());
 
-				// 执行动作
-				dos.writeUTF(ExecType.SINGLE_FILE);
-				dos.flush();
-				// 文件名和长度
-				dos.writeUTF(file.getName());
-				dos.flush();
-				dos.writeLong(file.length());
-				dos.flush();
-				// 目标机器上文件存放位置
-				dos.writeUTF(targetPath);
-				dos.flush();
-				// 文件的md5码
-				String md5 = FileUtil.getFileMd5(file);
-				dos.writeUTF(md5);
-				dos.flush();
+			// 协议头
+			dos.writeUTF(packet.getProtocolHeader());
+			dos.flush();
+			// 执行动作
+			dos.writeUTF(packet.getExecType());
+			dos.flush();
+			// 文件名和长度
+			dos.writeUTF(packet.getFileName());
+			dos.flush();
+			dos.writeLong(packet.getFileLength());
+			dos.flush();
+			// 目标机器上文件存放位置
+			dos.writeUTF(packet.getTargetPath());
+			dos.flush();
+			// 文件的md5码
+			// String md5 = FileUtil.getFileMd5(file);
+			dos.writeUTF(packet.getFileMd5());
+			dos.flush();
 
-				// 开始传输文件
-				LOGGER.info("======== 开始传输文件 ========");
-				byte[] bytes = new byte[1024];
-				int length = 0;
-				long progress = 0;
-				while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
-					dos.write(bytes, 0, length);
-					dos.flush();
-					progress += length;
-					LOGGER.info("| " + (100 * progress / file.length()) + "% |");
-				}
-				LOGGER.info("======== 文件传输成功 ========");
+			// 开始传输文件
+			LOGGER.info("======== 开始传输文件 ========");
+			byte[] bytes = new byte[1024];
+			int length = 0;
+			long progress = 0;
+			while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
+				dos.write(bytes, 0, length);
+				dos.flush();
+				progress += length;
+				LOGGER.info("| " + (100 * progress / fileInSender.length()) + "% |");
+			}
+			LOGGER.info("======== 文件传输成功 ========");
 
-				client.shutdownOutput();// 关闭输出流
+			client.shutdownOutput();// 关闭输出流
 
-				// 获取输入流，接收服务器端响应信息
-				is = client.getInputStream();
-				br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-				String data = null;
-				while ((data = br.readLine()) != null) {
-					LOGGER.info(data);
-					HandleResultBean result = JSON.parseObject(data, HandleResultBean.class);
-					//code为0表示正常，非0 表示有异常
-					if (0 != result.getCode()) {
-						ExceptionUtil.throwException(result.getMsg());
-					}
+			// 获取输入流，接收服务器端响应信息
+			is = client.getInputStream();
+			br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+			String data = null;
+			while ((data = br.readLine()) != null) {
+				LOGGER.info(data);
+				HandleResultBean result = JSON.parseObject(data, HandleResultBean.class);
+				// code为0表示正常，非0 表示有异常
+				if (0 != result.getCode()) {
+					ExceptionUtil.throwException(result.getMsg());
 				}
 			}
 		} catch (Exception e) {
 			LOGGER.error(e, e.fillInStackTrace());
+			throw e;
 		} finally {
 			if (fis != null) {
 				fis.close();
 			}
-				
+
 			if (dos != null) {
 				dos.close();
 			}
-			
+
 			if (is != null) {
 				is.close();
 			}
 			if (br != null) {
 				br.close();
 			}
-				
+
 			client.close();
 		}
 	}
@@ -113,19 +118,23 @@ public class TransferSendHandler {
 	 *
 	 * @throws Exception
 	 */
-	public void createDir(String relativePath, String targetPath) throws IOException {
+	public void createDir(CreateDirPacket packet) throws IOException {
 		try {
 			dos = new DataOutputStream(client.getOutputStream());
 
-			// 执行动作
-			dos.writeUTF(ExecType.CREATE_DIR);
+			// 协议头
+			dos.writeUTF(packet.getProtocolHeader());
 			dos.flush();
+			// 执行动作
+			dos.writeUTF(packet.getExecType());
+			dos.flush();
+
 			// 相对目录
-			dos.writeUTF(relativePath);
+			dos.writeUTF(packet.getRelativePath());
 			dos.flush();
 
 			// 目标机器上文件存放位置
-			dos.writeUTF(targetPath);
+			dos.writeUTF(packet.getTargetPath());
 			dos.flush();
 
 			client.shutdownOutput();// 关闭输出流
@@ -159,58 +168,59 @@ public class TransferSendHandler {
 	 *
 	 * @throws Exception
 	 */
-	public void sendFileInDir(String filePath, String relativePath, String targetPath) throws Exception {
+	public void sendFileInDir(File fileInSender, SendFileInDirPacket packet) throws Exception {
 		try {
-			File file = new File(filePath);
-			if (file.exists()) {
-				fis = new FileInputStream(file);
-				dos = new DataOutputStream(client.getOutputStream());
+			fis = new FileInputStream(fileInSender);
+			dos = new DataOutputStream(client.getOutputStream());
 
-				// 执行动作
-				dos.writeUTF(ExecType.FILE_IN_DIR);
-				dos.flush();
-				// 文件名和长度
-				dos.writeUTF(file.getName());
-				dos.flush();
-				dos.writeLong(file.length());
-				dos.flush();
-				// 目标机器上文件存放的相对目录
-				dos.writeUTF(relativePath);
-				dos.flush();
-				// 目标机器上文件存放的根目录
-				dos.writeUTF(targetPath);
-				dos.flush();				
-				// 文件的md5码
-				String md5 = FileUtil.getFileMd5(file);
-				dos.writeUTF(md5);
-				dos.flush();
+			// 协议头
+			dos.writeUTF(packet.getProtocolHeader());
+			dos.flush();
+			// 执行动作
+			dos.writeUTF(packet.getExecType());
+			dos.flush();
 
-				// 开始传输文件
-				LOGGER.info("======== 开始传输文件 ========");
-				byte[] bytes = new byte[1024];
-				int length = 0;
-				long progress = 0;
-				while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
-					dos.write(bytes, 0, length);
-					dos.flush();
-					progress += length;
-					LOGGER.info("| " + (100 * progress / file.length()) + "% |");
-				}
-				LOGGER.info("======== 文件传输成功 ========");
-				
-				client.shutdownOutput();// 关闭输出流
+			// 文件名和长度
+			dos.writeUTF(packet.getFileName());
+			dos.flush();
+			dos.writeLong(packet.getFileLength());
+			dos.flush();
+			// 目标机器上文件存放的相对目录
+			dos.writeUTF(packet.getRelativePath());
+			dos.flush();
+			// 目标机器上文件存放的根目录
+			dos.writeUTF(packet.getTargetPath());
+			dos.flush();
+			// 文件的md5码
+			// String md5 = FileUtil.getFileMd5(file);
+			dos.writeUTF(packet.getFileMd5());
+			dos.flush();
 
-				// 获取输入流，接收服务器端响应信息
-				is = client.getInputStream();
-				br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-				String data = null;
-				while ((data = br.readLine()) != null) {
-					LOGGER.info(data);
-					HandleResultBean result = JSON.parseObject(data, HandleResultBean.class);
-					//code为0表示正常，非0 表示有异常
-					if (0 != result.getCode()) {
-						ExceptionUtil.throwException(result.getMsg());
-					}
+			// 开始传输文件
+			LOGGER.info("======== 开始传输文件 ========");
+			byte[] bytes = new byte[1024];
+			int length = 0;
+			long progress = 0;
+			while ((length = fis.read(bytes, 0, bytes.length)) != -1) {
+				dos.write(bytes, 0, length);
+				dos.flush();
+				progress += length;
+				LOGGER.info("| " + (100 * progress / fileInSender.length()) + "% |");
+			}
+			LOGGER.info("======== 文件传输成功 ========");
+
+			client.shutdownOutput();// 关闭输出流
+
+			// 获取输入流，接收服务器端响应信息
+			is = client.getInputStream();
+			br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+			String data = null;
+			while ((data = br.readLine()) != null) {
+				LOGGER.info(data);
+				HandleResultBean result = JSON.parseObject(data, HandleResultBean.class);
+				// code为0表示正常，非0 表示有异常
+				if (0 != result.getCode()) {
+					ExceptionUtil.throwException(result.getMsg());
 				}
 			}
 		} catch (Exception e) {
@@ -219,11 +229,11 @@ public class TransferSendHandler {
 			if (fis != null) {
 				fis.close();
 			}
-				
+
 			if (dos != null) {
 				dos.close();
 			}
-			
+
 			if (is != null) {
 				is.close();
 			}
@@ -240,15 +250,19 @@ public class TransferSendHandler {
 	 * @param shell
 	 * @throws Exception
 	 */
-	public void remoteExecShell(String shell) throws Exception {
+	public void remoteExecShell(RemoteExecShellPacket packet) throws Exception {
 		try {
 			dos = new DataOutputStream(client.getOutputStream());
 
-			// 执行动作
-			dos.writeUTF(ExecType.REMOTE_EXEC_SHELL);
+			// 协议头
+			dos.writeUTF(packet.getProtocolHeader());
 			dos.flush();
+			// 执行动作
+			dos.writeUTF(packet.getExecType());
+			dos.flush();
+
 			// 需要执行的命令
-			dos.writeUTF(shell);
+			dos.writeUTF(packet.getShell());
 			dos.flush();
 
 			client.shutdownOutput();// 关闭输出流
@@ -260,7 +274,7 @@ public class TransferSendHandler {
 			while ((data = br.readLine()) != null) {
 				LOGGER.info(data);
 				HandleResultBean result = JSON.parseObject(data, HandleResultBean.class);
-				//code为0表示正常，非0 表示有异常
+				// code为0表示正常，非0 表示有异常
 				if (0 != result.getCode()) {
 					ExceptionUtil.throwException(result.getMsg());
 				}
