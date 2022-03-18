@@ -1,4 +1,4 @@
-## 基于Java socket的自定义协议文件/指令传输组件
+## 基于Java TCP Socket的自定义协议文件/指令传输组件
 
 用途：不同主机之间的文件/文件夹传输和远程执行命令行，实现不同操作系统之间（比如windows对windows、windows对linux、linux对linux、linux对windows）的单文件传输、目录/多文件传输、远程执行命令行，主要用来解决jenkins持续集成中复杂另类的文件传输需求。
 
